@@ -37,7 +37,9 @@ const params = {
   lightThreeSwitch: true,
 
   lineWeight : 1.02,
-  border : true,
+  pGlossy : 5.0,
+  pRimAmount : 0.8,
+  pRimThresh : 0.5,
   // Bokeh pass properties
   focus: 0.0,
   aperture: 0,
@@ -103,7 +105,6 @@ let app = {
 
     scene.add(new DirectionalLightHelper(dirLight1));
 
-
     // Create the floor
     const geoFloor = new THREE.BoxGeometry(200, 0.1, 200);
     const matStdFloor = new THREE.MeshStandardMaterial({
@@ -129,6 +130,10 @@ let app = {
     // https://github.com/mrdoob/three.js/blob/master/src/materials/MeshToonMaterial.js
     // https://github.com/mrdoob/three.js/blob/master/examples/webgl_materials_variations_toon.html
 
+    var glossiness = params.pGlossy;
+    var rimAmount = params.pRimAmount;
+    var rimThresh = params.pRimThresh;
+
     var geo = new THREE.SphereGeometry(2, 24, 24);
     var material = new THREE.ShaderMaterial({
       lights: true,
@@ -136,6 +141,10 @@ let app = {
       uniforms: {
         ...THREE.UniformsLib.lights,
         uColor: { value: new THREE.Color('#6495ED') },
+        glossiness: {value: glossiness},
+        rimAmount: {value: rimAmount},
+        rimThresh: {value: rimThresh},
+
       },
       // adding the custom shader stuff connected to toon.vert and toon.frag
       vertexShader: toonVertexShader,
@@ -175,6 +184,20 @@ let app = {
         outlineMesh.scale.multiplyScalar(ratio)
 
         scalar = val;
+      });
+    gui
+      .add(params,'pGlossy',0,20,1)
+      .name("Glossiness")
+      .onChange((val) => {
+        glossiness = val;
+        material.uniforms.glossiness.value = glossiness;
+      });
+      gui
+      .add(params,'pRimAmount',0.7,1,0.05)
+      .name("rim amount")
+      .onChange((val) => {
+        rimAmount = val;
+        material.uniforms.rimAmount.value = rimAmount;
       });
 
 
