@@ -35,6 +35,9 @@ const params = {
   lightOneSwitch: true,
   lightTwoSwitch: true,
   lightThreeSwitch: true,
+
+  lineWeight : 1.02,
+  border : true,
   // Bokeh pass properties
   focus: 0.0,
   aperture: 0,
@@ -54,6 +57,15 @@ let renderer = createRenderer({ antialias: true }, (_renderer) => {
   // best practice: ensure output colorspace is in sRGB, see Color Management documentation:
   // https://threejs.org/docs/#manual/en/introduction/Color-management
   _renderer.outputEncoding = THREE.sRGBEncoding;
+
+  // _renderer.lineWeight = params.lineWeight;
+
+  // const gui = new dat.GUI();
+
+  // gui.add(params, 'lineWeight',0,2).name('Line Weight').onChange(() => {
+  //  _renderer.lineWeight = params.lineWeight;
+  // });
+
 });
 
 // Create the camera
@@ -81,24 +93,7 @@ let app = {
     // Create rect area lights
     RectAreaLightUniformsLib.init();
 
-    // let rectLight1 = new THREE.RectAreaLight(0xff0000, 5, 4, 10);
-    // rectLight1.position.set(-5, 5, -5);
-    // rectLight1.lookAt(-5, 5, 0);
-    // scene.add(rectLight1);
 
-    // let rectLight2 = new THREE.RectAreaLight(0x00ff00, 5, 4, 10);
-    // rectLight2.position.set(0, 5, -5);
-    // rectLight2.lookAt(0, 5, 0);
-    // scene.add(rectLight2);
-
-    // let rectLight3 = new THREE.RectAreaLight(0x0000ff, 5, 4, 10);
-    // rectLight3.position.set(5, 5, -5);
-    // rectLight3.lookAt(5, 5, 0);
-    // scene.add(rectLight3);
-
-    // scene.add(new RectAreaLightHelper(rectLight1));
-    // scene.add(new RectAreaLightHelper(rectLight2));
-    // scene.add(new RectAreaLightHelper(rectLight3));
 
     // Create directional light
     let dirLight1 = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -146,42 +141,42 @@ let app = {
       vertexShader: toonVertexShader,
       fragmentShader: toonFragmentShader,
     });
+
+    //let outlineWeight = params.lineWeight;
+    let scalar = params.lineWeight;
+
     var sphere = new THREE.Mesh(geo, material);
-    sphere.position.set(0,(sphere.geometry.parameters.radius*1.02 ),0);
+    //var sphere = new THREE.Mesh(geo, THREE.MeshBasicMaterial({color:0xffffff}));
+    sphere.position.set(0,(sphere.geometry.parameters.radius* scalar ),0);
+    //sphere.position.y.set(sphere.geometry.parameters.radius *outlineWeight);
     scene.add(sphere);
-    //sphere.position.y = sphere.geometry.parameters.radius;
     //sphere.position.set(0,phere.geometry.parameters.radius,0);
 
     //Trying to add outline
     var outlinematerial1 = new THREE.MeshBasicMaterial({color:0x000000, side: THREE.BackSide});
-    var outlineMesh = new THREE.Mesh(geo, outlinematerial1);
+    let outlineMesh = new THREE.Mesh(geo, outlinematerial1);
     //outlineMesh.position = sphere.position;
-    outlineMesh.position.set(0,sphere.geometry.parameters.radius * 1.02,0);
-    outlineMesh.scale.multiplyScalar(1.02);
+    outlineMesh.position.set(0,sphere.geometry.parameters.radius * scalar,0);
+    //outlineMesh.position.set(sphere.position);
+    outlineMesh.scale.multiplyScalar(scalar);
     scene.add(outlineMesh);
+    //scene.add(new RectAreaLightHelper(outlineMesh));
 
     // GUI controls
     const gui = new dat.GUI();
+    gui
+      .add(params, 'lineWeight', 1, 2, 0.01)
+      .name("Border")
+      .onChange((val) => {
+        let ratio = val / scalar;
 
-    gui.add(params, 'speed', 1, 10, 0.5);
-    // gui
-    //   .add(params, 'lightOneSwitch')
-    //   .name('Red light')
-    //   .onChange((val) => {
-    //     rectLight1.intensity = val ? 5 : 0;
-    //   });
-    // gui
-    //   .add(params, 'lightTwoSwitch')
-    //   .name('Green light')
-    //   .onChange((val) => {
-    //     rectLight2.intensity = val ? 5 : 0;
-    //   });
-    // gui
-    //   .add(params, 'lightThreeSwitch')
-    //   .name('Blue light')
-    //   .onChange((val) => {
-    //     rectLight3.intensity = val ? 5 : 0;
-    //   });
+        sphere.position.set(0,(sphere.geometry.parameters.radius* val),0);
+        outlineMesh.position.set(0,sphere.geometry.parameters.radius * val,0);
+        outlineMesh.scale.multiplyScalar(ratio)
+
+        scalar = val;
+      });
+
 
     // Stats - show fps
     this.stats1 = new Stats();
@@ -223,4 +218,6 @@ let app = {
  * ps. if you don't use custom shaders, pass undefined to the 'uniforms'(2nd-last) param
  * ps. if you don't use post-processing, pass undefined to the 'composer'(last) param
  *************************************************/
+
+
 runApp(app, scene, renderer, camera, true, undefined, composer);

@@ -51,8 +51,10 @@ void main() {
 
   vec3 rim = rimIntensity * directionalLights[0].color;
 
+  //gl_FragColor = vec4(uColor * (ambientLightColor), 1.0);
+  //gl_FragColor = vec4(uColor * (ambientLightColor + directionalLight), 1.0);
+  //gl_FragColor = vec4(uColor * (ambientLightColor + directionalLight + specular), 1.0);
   gl_FragColor = vec4(uColor * (ambientLightColor + directionalLight + specular + rim), 1.0);
-  // gl_FragColor = vec4(uColor + rim + specular +, 1.0);
 
 
 
