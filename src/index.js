@@ -1,22 +1,33 @@
 // ThreeJS and Third-party deps
-import * as THREE from "three"
-import * as dat from 'dat.gui'
-import Stats from "three/examples/jsm/libs/stats.module"
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
-import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper"
-import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib"
-import { BokehPass } from "three/examples/jsm/postprocessing/BokehPass"
+import * as THREE from 'three';
+import * as dat from 'dat.gui';
+import Stats from 'three/examples/jsm/libs/stats.module';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { RectAreaLightHelper } from 'three/examples/jsm/helpers/RectAreaLightHelper';
+import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib';
+
+import toonVertexShader from './toon.vert';
+import toonFragmentShader from './toon.frag';
+import hadesFragmentShader from './hades.frag';
 
 // Core boilerplate code deps
-import { createCamera, createComposer, createRenderer, runApp } from "./core-utils"
+import {
+  createCamera,
+  createComposer,
+  createRenderer,
+  runApp,
+} from './core-utils';
 
 // Other deps
-import Tile from './assets/checker_tile.png'
+import Tile from './assets/checker_tile.png';
+import Okami from './assets/okami_icewater.png';
+import Cracked from './assets/cracked.png';
+import { DirectionalLightHelper } from 'three';
 
-global.THREE = THREE
+global.THREE = THREE;
 // previously this feature is .legacyMode = false, see https://www.donmccurdy.com/2020/06/17/color-management-in-threejs/
 // turning this on has the benefit of doing certain automatic conversions (for hexadecimal and CSS colors from sRGB to linear-sRGB)
-THREE.ColorManagement.enabled = true
+THREE.ColorManagement.enabled = true;
 
 /**************************************************
  * 0. Tweakable parameters for the scene
@@ -27,18 +38,24 @@ const params = {
   lightOneSwitch: true,
   lightTwoSwitch: true,
   lightThreeSwitch: true,
+
+  lineWeight : 1.02,
+  pGlossy : 5.0,
+  pRimAmount : 0.8,
+  pRimThresh : 0.5,
+  pColor : new THREE.Color("rgb(100, 149, 237)"),
+  pDirLightColor : new THREE.Color(0xffffff),
   // Bokeh pass properties
   focus: 0.0,
   aperture: 0,
-  maxblur: 0.0
-}
-
+  maxblur: 0.0,
+};
 
 /**************************************************
  * 1. Initialize core threejs components
  *************************************************/
 // Create the scene
-let scene = new THREE.Scene()
+let scene = new THREE.Scene();
 
 // Create the renderer via 'createRenderer',
 // 1st param receives additional WebGLRenderer properties
@@ -46,24 +63,28 @@ let scene = new THREE.Scene()
 let renderer = createRenderer({ antialias: true }, (_renderer) => {
   // best practice: ensure output colorspace is in sRGB, see Color Management documentation:
   // https://threejs.org/docs/#manual/en/introduction/Color-management
-  _renderer.outputEncoding = THREE.sRGBEncoding
-})
+  _renderer.outputEncoding = THREE.sRGBEncoding;
+
+  // line weight gui
+  // _renderer.lineWeight = params.lineWeight;
+  // const gui = new dat.GUI();
+  // gui.add(params, 'lineWeight',0,2).name('Line Weight').onChange(() => {
+  //  _renderer.lineWeight = params.lineWeight;
+  // });
+
+});
+
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 // Create the camera
 // Pass in fov, near, far and camera position respectively
-let camera = createCamera(45, 1, 1000, { x: 0, y: 5, z: 15 })
+let camera = createCamera(45, 1, 1000, { x: 0, y: 5, z: 15 });
 
-// (Optional) Create the EffectComposer and passes for post-processing
-// If you don't need post-processing, just comment/delete the following creation code, and skip passing any composer to 'runApp' at the bottom
-let bokehPass = new BokehPass(scene, camera, {
-  focus: 0.0,
-  aperture: 0.0,
-  maxblur: 0.0
-})
 // The RenderPass is already created in 'createComposer'
 let composer = createComposer(renderer, scene, camera, (comp) => {
-  comp.addPass(bokehPass)
-})
+  // comp.addPass(bokehPass);
+});
 
 /**************************************************
  * 2. Build your scene in this threejs app
@@ -74,110 +95,195 @@ let composer = createComposer(renderer, scene, camera, (comp) => {
 let app = {
   async initScene() {
     // OrbitControls
-    this.controls = new OrbitControls(camera, renderer.domElement)
-    this.controls.enableDamping = true
+    this.controls = new OrbitControls(camera, renderer.domElement);
+    this.controls.enableDamping = true;
 
     // Scene setup taken from https://threejs.org/examples/#webgl_lights_rectarealight
     // Create rect area lights
-    RectAreaLightUniformsLib.init()
+    RectAreaLightUniformsLib.init();
 
-    let rectLight1 = new THREE.RectAreaLight(0xff0000, 5, 4, 10)
-    rectLight1.position.set( -5, 5, -5)
-    rectLight1.lookAt( -5, 5, 0 )
-    scene.add(rectLight1)
+    // Create directional light
+    let dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    dirLight.position.set(5, 5, 5);
+    dirLight.lookAt(0, 5, 0);
 
-    let rectLight2 = new THREE.RectAreaLight(0x00ff00, 5, 4, 10)
-    rectLight2.position.set(0, 5, -5)
-    rectLight2.lookAt( 0, 5, 0 )
-    scene.add(rectLight2)
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 4096;
+    dirLight.shadow.mapSize.height = 4096;
 
-    let rectLight3 = new THREE.RectAreaLight(0x0000ff, 5, 4, 10)
-    rectLight3.position.set(5, 5, -5)
-    rectLight3.lookAt( 5, 5, 0 )
-    scene.add(rectLight3)
-
-    scene.add(new RectAreaLightHelper(rectLight1))
-    scene.add(new RectAreaLightHelper(rectLight2))
-    scene.add(new RectAreaLightHelper(rectLight3))
+    scene.add(dirLight);
+    // scene.add(new DirectionalLightHelper(dirLight));
 
     // Create the floor
-    const geoFloor = new THREE.BoxGeometry(200, 0.1, 200)
-    const matStdFloor = new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.5, metalness: 0 })
-    const mshStdFloor = new THREE.Mesh(geoFloor, matStdFloor)
+    const geoFloor = new THREE.BoxGeometry(200, 0.1, 200);
+    const matStdFloor = new THREE.MeshStandardMaterial({
+      color: 0x808080,
+      roughness: 0.5,
+      metalness: 0,
+    });
+    const mshStdFloor = new THREE.Mesh(geoFloor, matStdFloor);
     // need await to make sure animation starts only after texture is loaded
     // this works because the animation code is 'then-chained' after initScene(), see core-utils.runApp
-    await this.loadTexture(mshStdFloor)
-    scene.add(mshStdFloor)
+    await this.loadTexture(mshStdFloor);
+    scene.add(mshStdFloor);
+    scene.add(new THREE.AmbientLight(0x888888));
+    mshStdFloor.receiveShadow = true;
+    
+    var glossiness = params.pGlossy;
+    var rimAmount = params.pRimAmount;
+    var rimThresh = params.pRimThresh;
+    var color = params.pColor;
+    
+    // toon material
+    var toonMaterial = new THREE.ShaderMaterial({
+      lights: true,
+      flatShading: true,
+      uniforms: {
+        ...THREE.UniformsLib.lights,
+        uColor: { value: color },
+        glossiness: {value: glossiness},
+        rimAmount: {value: rimAmount},
+        rimThresh: {value: rimThresh},
+        
+        //hades shader
+        //uColor: { value: new THREE.Color('#d14c2a') },
+      },
+      // adding the custom shader stuff connected to toon.vert and toon.frag
+      vertexShader: toonVertexShader,
+      fragmentShader: toonFragmentShader,
+    });
+    
+    // cheater way of bump mapping, can use Three's toon, phong, or lambert shader (toon looks the worst...)
+    var bumpMaterial = new THREE.MeshPhongMaterial({color: '#d14c2a'})
+    var texture = new THREE.TextureLoader().load(Cracked)
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set( 2, 2 ); // denser pattern
 
-    // Create the torus knot
-    const geoKnot = new THREE.TorusKnotGeometry(1.5, 0.5, 200, 16)
-    const matKnot = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0, metalness: 0 })
-    // save mesh to 'this' so that we can access it in the 'updateScene' function
-    this.meshKnot = new THREE.Mesh(geoKnot, matKnot)
-    this.meshKnot.position.set(0, 5, 0)
-    // update orbit controls to target meshKnot at center
-    this.controls.target.copy(this.meshKnot.position)
-    scene.add(this.meshKnot)
+    bumpMaterial.bumpMap = texture
+    bumpMaterial.bumpScale = 0.05 // higher values = more textured lines. lower values = cartoonish/smoother effect
+
+    //let outlineWeight = params.lineWeight;
+    let scalar = params.lineWeight;
+    
+    // sphere object
+    var sphereGeo = new THREE.SphereGeometry(2, 24, 24);
+    var sphere = new THREE.Mesh(sphereGeo, toonMaterial);
+    //var sphere = new THREE.Mesh(sphereGeo, THREE.MeshBasicMaterial({color:0xffffff}));
+    sphere.position.set(0,(sphere.geometry.parameters.radius* scalar ),0);
+    //sphere.position.y.set(sphere.geometry.parameters.radius *outlineWeight);
+    scene.add(sphere);
+    sphere.castShadow = true;
+    sphere.receiveShadow = true;
+
+    // torus knot object
+    var torusKnotGeo = new THREE.TorusKnotGeometry(1, 0.3);
+    var torus = new THREE.Mesh(torusKnotGeo, bumpMaterial);
+    scene.add(torus);
+    torus.position.set(5, sphere.geometry.parameters.radius + 2, 2);
+    torus.castShadow = true;
+    torus.receiveShadow = true;
+
+    // outline
+    var outlineMaterial = new THREE.MeshBasicMaterial({color:0x000000, side: THREE.BackSide});
+    let outlineMesh = new THREE.Mesh(sphereGeo, outlineMaterial);
+    //outlineMesh.position = sphere.position;
+    outlineMesh.position.set(0,sphere.geometry.parameters.radius * scalar,0);
+    //outlineMesh.position.set(sphere.position);
+    outlineMesh.scale.multiplyScalar(scalar);
+    scene.add(outlineMesh);
+    
+    //hades shader
+    // var outlinematerial1 = new THREE.MeshBasicMaterial({
+    //   color: 0x000000,
+    //   side: THREE.BackSide,
+    // });
+    // var outlineMesh = new THREE.Mesh(geometry, outlinematerial1);
+    // //outlineMesh.position = sphere.position;
+    // outlineMesh.position.set(
+    //   0,
+    //   (sphere.geometry.parameters.radius + 2) * 1.02,
+    //   0
+    // );
+    // outlineMesh.scale.multiplyScalar(1.02);
 
     // GUI controls
-    const gui = new dat.GUI()
+    const gui = new dat.GUI();
+    gui
+      .add(params, 'lineWeight', 1, 2, 0.01)
+      .name("Border")
+      .onChange((val) => {
+        let ratio = val / scalar;
 
-    gui.add(params, "speed", 1, 10, 0.5)
-    gui.add(params, "lightOneSwitch").name('Red light').onChange((val) => {
-      rectLight1.intensity = val ? 5 : 0
-    })
-    gui.add(params, "lightTwoSwitch").name('Green light').onChange((val) => {
-      rectLight2.intensity = val ? 5 : 0
-    })
-    gui.add(params, "lightThreeSwitch").name('Blue light').onChange((val) => {
-      rectLight3.intensity = val ? 5 : 0
-    })
+        sphere.position.set(0,(sphere.geometry.parameters.radius* val),0);
+        outlineMesh.position.set(0,sphere.geometry.parameters.radius * val,0);
+        outlineMesh.scale.multiplyScalar(ratio)
 
-    const matChanger = () => {
-      bokehPass.uniforms['focus'].value = params.focus
-      bokehPass.uniforms['aperture'].value = params.aperture * 0.00001
-      bokehPass.uniforms['maxblur'].value = params.maxblur
-    }
-
-    let bokehFolder = gui.addFolder(`Bokeh Pass`)
-    bokehFolder.add(params, 'focus', 0.0, 3000.0, 10).onChange(matChanger)
-    bokehFolder.add(params, 'aperture', 0, 10, 0.1).onChange(matChanger)
-    bokehFolder.add(params, 'maxblur', 0.0, 0.01, 0.001).onChange(matChanger)
+        scalar = val;
+      });
+    gui
+      .add(params,'pGlossy',0,20,1)
+      .name("Glossiness")
+      .onChange((val) => {
+        glossiness = val;
+        toonMaterial.uniforms.glossiness.value = glossiness;
+      });
+    gui
+      .add(params,'pRimAmount',0.7,1,0.05)
+      .name("Rim Amount")
+      .onChange((val) => {
+        rimAmount = val;
+        toonMaterial.uniforms.rimAmount.value = rimAmount;
+      });
+    gui
+      .addColor(params, 'pColor')
+      .name("Color")
+      .onChange((val) => {
+        color = val;
+        toonMaterial.uniforms.uColor.value.r = color.r / 255;
+        toonMaterial.uniforms.uColor.value.g = color.g / 255;
+        toonMaterial.uniforms.uColor.value.b = color.b / 255;
+      });
+    gui
+      .addColor(params, 'pDirLightColor')
+      .name("Light Color")
+      .onChange((val) => {
+        dirLight.color.r = val.r / 255;
+        dirLight.color.g = val.g / 255;
+        dirLight.color.b = val.b / 255;
+      });
 
     // Stats - show fps
-    this.stats1 = new Stats()
-    this.stats1.showPanel(0) // Panel 0 = fps
-    this.stats1.domElement.style.cssText = "position:absolute;top:0px;left:0px;"
+    this.stats1 = new Stats();
+    this.stats1.showPanel(0); // Panel 0 = fps
+    this.stats1.domElement.style.cssText =
+      'position:absolute;top:0px;left:0px;';
     // this.container is the parent DOM element of the threejs canvas element
-    this.container.appendChild(this.stats1.domElement)
+    this.container.appendChild(this.stats1.domElement);
   },
   // load a texture for the floor
   // returns a promise so the caller can await on this function
   loadTexture(mshStdFloor) {
     return new Promise((resolve, reject) => {
-      var loader = new THREE.TextureLoader()
-      loader.load(Tile, function (texture) {
-        texture.wrapS = THREE.RepeatWrapping
-        texture.wrapT = THREE.RepeatWrapping
-        texture.repeat.set(40, 40)
-        mshStdFloor.material.map = texture
-        resolve()
-      }, undefined, function (error) {
-        console.log(error)
-        reject(error)
-      })
-    })
+      var loader = new THREE.TextureLoader();
+      loader.load(
+        Tile,
+        function (texture) {
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapT = THREE.RepeatWrapping;
+          texture.repeat.set(40, 40);
+          mshStdFloor.material.map = texture;
+          resolve();
+        },
+        undefined,
+        function (error) {
+          console.log(error);
+          reject(error);
+        }
+      );
+    });
   },
-  // @param {number} interval - time elapsed between 2 frames
-  // @param {number} elapsed - total time elapsed since app start
-  updateScene(interval, elapsed) {
-    this.controls.update()
-    this.stats1.update()
-
-    // rotate the torus
-    this.meshKnot.rotation.y = elapsed * params.speed
-  }
-}
+};
 
 /**************************************************
  * 3. Run the app
@@ -187,4 +293,6 @@ let app = {
  * ps. if you don't use custom shaders, pass undefined to the 'uniforms'(2nd-last) param
  * ps. if you don't use post-processing, pass undefined to the 'composer'(last) param
  *************************************************/
-runApp(app, scene, renderer, camera, true, undefined, composer)
+
+
+runApp(app, scene, renderer, camera, true, undefined, composer);
