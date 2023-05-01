@@ -63,10 +63,9 @@ let renderer = createRenderer({ antialias: true }, (_renderer) => {
   // https://threejs.org/docs/#manual/en/introduction/Color-management
   _renderer.outputEncoding = THREE.sRGBEncoding;
 
+  // line weight gui
   // _renderer.lineWeight = params.lineWeight;
-
   // const gui = new dat.GUI();
-
   // gui.add(params, 'lineWeight',0,2).name('Line Weight').onChange(() => {
   //  _renderer.lineWeight = params.lineWeight;
   // });
@@ -74,7 +73,7 @@ let renderer = createRenderer({ antialias: true }, (_renderer) => {
 });
 
 renderer.shadowMap.enabled = true;
-// renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 // Create the camera
 // Pass in fov, near, far and camera position respectively
@@ -101,8 +100,6 @@ let app = {
     // Create rect area lights
     RectAreaLightUniformsLib.init();
 
-
-
     // Create directional light
     let dirLight1 = new THREE.DirectionalLight(0xffffff, 0.5);
     dirLight1.position.set(5, 5, 5);
@@ -113,8 +110,7 @@ let app = {
     dirLight1.shadow.mapSize.height = 4096;
 
     scene.add(dirLight1);
-
-    scene.add(new DirectionalLightHelper(dirLight1));
+    // scene.add(new DirectionalLightHelper(dirLight1));
 
     // Create the floor
     const geoFloor = new THREE.BoxGeometry(200, 0.1, 200);
@@ -128,26 +124,15 @@ let app = {
     // this works because the animation code is 'then-chained' after initScene(), see core-utils.runApp
     await this.loadTexture(mshStdFloor);
     scene.add(mshStdFloor);
-
     scene.add(new THREE.AmbientLight(0x888888));
     mshStdFloor.receiveShadow = true;
-
-    // the sphere stuff!
-    // i discovered a "meshtoonmaterial" that should be built in and looks really good
-    // but i can't seem to implement it LOL
-    // and i also can't seem to find anything interesting in its source code
-    // see here for the articles and source codes respectively
-    // https://threejs.org/docs/#api/en/materials/MeshToonMaterial
-    // https://threejs.org/examples/#webgl_materials_variations_toon
-    // https://github.com/mrdoob/three.js/blob/master/src/materials/MeshToonMaterial.js
-    // https://github.com/mrdoob/three.js/blob/master/examples/webgl_materials_variations_toon.html
-
+    
     var glossiness = params.pGlossy;
     var rimAmount = params.pRimAmount;
     var rimThresh = params.pRimThresh;
-
-    var geo = new THREE.SphereGeometry(2, 24, 24);
-    var material = new THREE.ShaderMaterial({
+    
+    // toon material
+    var toonMaterial = new THREE.ShaderMaterial({
       lights: true,
       flatShading: true,
       uniforms: {
@@ -156,7 +141,7 @@ let app = {
         glossiness: {value: glossiness},
         rimAmount: {value: rimAmount},
         rimThresh: {value: rimThresh},
-
+        
         //hades shader
         //uColor: { value: new THREE.Color('#d14c2a') },
       },
@@ -164,19 +149,7 @@ let app = {
       vertexShader: toonVertexShader,
       fragmentShader: toonFragmentShader,
     });
-
-    //let outlineWeight = params.lineWeight;
-    let scalar = params.lineWeight;
-
-    var sphere = new THREE.Mesh(geo, material);
-    //var sphere = new THREE.Mesh(geo, THREE.MeshBasicMaterial({color:0xffffff}));
-    sphere.position.set(0,(sphere.geometry.parameters.radius* scalar ),0);
-    //sphere.position.y.set(sphere.geometry.parameters.radius *outlineWeight);
-    scene.add(sphere);
-
-    //hades shader
-    //sphere.position.set(0, sphere.geometry.parameters.radius * 1.02, 0);
-
+    
     // cheater way of bump mapping, can use Three's toon, phong, or lambert shader (toon looks the worst...)
     var bumpMaterial = new THREE.MeshPhongMaterial({color: '#d14c2a'})
     var texture = new THREE.TextureLoader().load(Cracked)
@@ -187,35 +160,37 @@ let app = {
     bumpMaterial.bumpMap = texture
     bumpMaterial.bumpScale = 0.05 // higher values = more textured lines. lower values = cartoonish/smoother effect
 
+    //let outlineWeight = params.lineWeight;
+    let scalar = params.lineWeight;
+    
+    // sphere object
+    var sphereGeo = new THREE.SphereGeometry(2, 24, 24);
+    var sphere = new THREE.Mesh(sphereGeo, toonMaterial);
+    //var sphere = new THREE.Mesh(sphereGeo, THREE.MeshBasicMaterial({color:0xffffff}));
+    sphere.position.set(0,(sphere.geometry.parameters.radius* scalar ),0);
+    //sphere.position.y.set(sphere.geometry.parameters.radius *outlineWeight);
+    scene.add(sphere);
+    sphere.castShadow = true;
+    sphere.receiveShadow = true;
 
-    // var sphere = new THREE.Mesh(geo, material);
-    // sphere.position.set(0, sphere.geometry.parameters.radius * 1.02, 0);
-    // scene.add(sphere);
-    // sphere.position.y = sphere.geometry.parameters.radius;
-    // sphere.position.set(0,sphere.geometry.parameters.radius,0);
-    // sphere.castShadow = true;
-    // sphere.receiveShadow = true;
-
-    // scene.add(sphere);
-    //sphere.position.y = sphere.geometry.parameters.radius;
-    //sphere.position.set(0,phere.geometry.parameters.radius,0);
-
-    var geometry = new THREE.TorusKnotGeometry(1, 0.3);
-    var torus = new THREE.Mesh(geometry, bumpMaterial);
+    // torus knot object
+    var torusKnotGeo = new THREE.TorusKnotGeometry(1, 0.3);
+    var torus = new THREE.Mesh(torusKnotGeo, bumpMaterial);
     scene.add(torus);
     torus.position.set(5, sphere.geometry.parameters.radius + 2, 2);
     torus.castShadow = true;
+    torus.receiveShadow = true;
 
-    //Trying to add outline
-
-    var outlinematerial1 = new THREE.MeshBasicMaterial({color:0x000000, side: THREE.BackSide});
-    let outlineMesh = new THREE.Mesh(geo, outlinematerial1);
+    // outline
+    var outlineMaterial = new THREE.MeshBasicMaterial({color:0x000000, side: THREE.BackSide});
+    let outlineMesh = new THREE.Mesh(sphereGeo, outlineMaterial);
     //outlineMesh.position = sphere.position;
     outlineMesh.position.set(0,sphere.geometry.parameters.radius * scalar,0);
     //outlineMesh.position.set(sphere.position);
     outlineMesh.scale.multiplyScalar(scalar);
-
-//hades shader
+    scene.add(outlineMesh);
+    
+    //hades shader
     // var outlinematerial1 = new THREE.MeshBasicMaterial({
     //   color: 0x000000,
     //   side: THREE.BackSide,
@@ -228,9 +203,6 @@ let app = {
     //   0
     // );
     // outlineMesh.scale.multiplyScalar(1.02);
-
-    scene.add(outlineMesh);
-    //scene.add(new RectAreaLightHelper(outlineMesh));
 
     // GUI controls
     const gui = new dat.GUI();
@@ -251,14 +223,14 @@ let app = {
       .name("Glossiness")
       .onChange((val) => {
         glossiness = val;
-        material.uniforms.glossiness.value = glossiness;
+        toonMaterial.uniforms.glossiness.value = glossiness;
       });
       gui
       .add(params,'pRimAmount',0.7,1,0.05)
       .name("rim amount")
       .onChange((val) => {
         rimAmount = val;
-        material.uniforms.rimAmount.value = rimAmount;
+        toonMaterial.uniforms.rimAmount.value = rimAmount;
       });
 
 
