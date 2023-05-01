@@ -16,11 +16,13 @@
 #include <shadowmask_pars_fragment>
 
 uniform vec3 uColor;
+uniform float glossiness;
+uniform float rimAmount;
+uniform float rimThreshold;
 
 
 varying vec3 vNormal;
 varying vec3 vViewDir;
-// uniform float uGlossiness;
 
 
 void main() {
@@ -69,7 +71,9 @@ float shadow = getShadow(
   vec3 halfVector = normalize(directionalLights[0].direction + vViewDir);
   float NdotH = dot(vNormal, halfVector);
 
-  float glossiness = 5.0; // adjust to preference, could be a GUI feature
+  // adjust to preference, could be a GUI feature
+  //float glossiness = 5.0;
+
 
   float specularIntensity = pow(NdotH * lightIntensity, 1000.0 / glossiness);
   float specularIntensitySmooth = smoothstep(0.05, 0.1, specularIntensity);
@@ -78,17 +82,15 @@ float shadow = getShadow(
 
   // // rim lighting but it seems like a cheese way to do it, can prob improve
   float rimDot = 1.0 - dot(vViewDir, vNormal);
-  float rimAmount = 0.6;
+  //float rimAmount = 0.6;
 
-  float rimThreshold = 0.5;
+  //float rimThreshold = 0.5;
   float rimIntensity = rimDot * pow(0.5, rimThreshold);
   rimIntensity = smoothstep(rimAmount - 0.01, rimAmount + 0.01, rimIntensity);
 
   vec3 rim = rimIntensity * directionalLights[0].color;
 
   gl_FragColor = vec4(uColor  * (ambientLightColor + directionalLight + specular + rim), 1.0);
-  // gl_FragColor = vec4(uColor + rim + specular +, 1.0);
-
 
 
 }

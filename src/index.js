@@ -38,6 +38,11 @@ const params = {
   lightOneSwitch: true,
   lightTwoSwitch: true,
   lightThreeSwitch: true,
+
+  lineWeight : 1.02,
+  pGlossy : 5.0,
+  pRimAmount : 0.8,
+  pRimThresh : 0.5,
   // Bokeh pass properties
   focus: 0.0,
   aperture: 0,
@@ -57,6 +62,15 @@ let renderer = createRenderer({ antialias: true }, (_renderer) => {
   // best practice: ensure output colorspace is in sRGB, see Color Management documentation:
   // https://threejs.org/docs/#manual/en/introduction/Color-management
   _renderer.outputEncoding = THREE.sRGBEncoding;
+
+  // _renderer.lineWeight = params.lineWeight;
+
+  // const gui = new dat.GUI();
+
+  // gui.add(params, 'lineWeight',0,2).name('Line Weight').onChange(() => {
+  //  _renderer.lineWeight = params.lineWeight;
+  // });
+
 });
 
 renderer.shadowMap.enabled = true;
@@ -87,24 +101,7 @@ let app = {
     // Create rect area lights
     RectAreaLightUniformsLib.init();
 
-    // let rectLight1 = new THREE.RectAreaLight(0xff0000, 5, 4, 10);
-    // rectLight1.position.set(-5, 5, -5);
-    // rectLight1.lookAt(-5, 5, 0);
-    // scene.add(rectLight1);
 
-    // let rectLight2 = new THREE.RectAreaLight(0x00ff00, 5, 4, 10);
-    // rectLight2.position.set(0, 5, -5);
-    // rectLight2.lookAt(0, 5, 0);
-    // scene.add(rectLight2);
-
-    // let rectLight3 = new THREE.RectAreaLight(0x0000ff, 5, 4, 10);
-    // rectLight3.position.set(5, 5, -5);
-    // rectLight3.lookAt(5, 5, 0);
-    // scene.add(rectLight3);
-
-    // scene.add(new RectAreaLightHelper(rectLight1));
-    // scene.add(new RectAreaLightHelper(rectLight2));
-    // scene.add(new RectAreaLightHelper(rectLight3));
 
     // Create directional light
     let dirLight1 = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -145,18 +142,40 @@ let app = {
     // https://github.com/mrdoob/three.js/blob/master/src/materials/MeshToonMaterial.js
     // https://github.com/mrdoob/three.js/blob/master/examples/webgl_materials_variations_toon.html
 
+    var glossiness = params.pGlossy;
+    var rimAmount = params.pRimAmount;
+    var rimThresh = params.pRimThresh;
+
     var geo = new THREE.SphereGeometry(2, 24, 24);
     var material = new THREE.ShaderMaterial({
       lights: true,
       flatShading: true,
       uniforms: {
         ...THREE.UniformsLib.lights,
-        uColor: { value: new THREE.Color('#d14c2a') },
+        uColor: { value: new THREE.Color('#6495ED') },
+        glossiness: {value: glossiness},
+        rimAmount: {value: rimAmount},
+        rimThresh: {value: rimThresh},
+
+        //hades shader
+        //uColor: { value: new THREE.Color('#d14c2a') },
       },
       // adding the custom shader stuff connected to toon.vert and toon.frag
       vertexShader: toonVertexShader,
       fragmentShader: toonFragmentShader,
     });
+
+    //let outlineWeight = params.lineWeight;
+    let scalar = params.lineWeight;
+
+    var sphere = new THREE.Mesh(geo, material);
+    //var sphere = new THREE.Mesh(geo, THREE.MeshBasicMaterial({color:0xffffff}));
+    sphere.position.set(0,(sphere.geometry.parameters.radius* scalar ),0);
+    //sphere.position.y.set(sphere.geometry.parameters.radius *outlineWeight);
+    scene.add(sphere);
+
+    //hades shader
+    //sphere.position.set(0, sphere.geometry.parameters.radius * 1.02, 0);
 
     // cheater way of bump mapping, can use Three's toon, phong, or lambert shader (toon looks the worst...)
     var bumpMaterial = new THREE.MeshPhongMaterial({color: '#d14c2a'})
@@ -169,13 +188,17 @@ let app = {
     bumpMaterial.bumpScale = 0.05 // higher values = more textured lines. lower values = cartoonish/smoother effect
 
 
-    var sphere = new THREE.Mesh(geo, material);
-    sphere.position.set(0, sphere.geometry.parameters.radius * 1.02, 0);
-    scene.add(sphere);
-    sphere.position.y = sphere.geometry.parameters.radius;
-    sphere.position.set(0,sphere.geometry.parameters.radius,0);
-    sphere.castShadow = true;
-    sphere.receiveShadow = true;
+    // var sphere = new THREE.Mesh(geo, material);
+    // sphere.position.set(0, sphere.geometry.parameters.radius * 1.02, 0);
+    // scene.add(sphere);
+    // sphere.position.y = sphere.geometry.parameters.radius;
+    // sphere.position.set(0,sphere.geometry.parameters.radius,0);
+    // sphere.castShadow = true;
+    // sphere.receiveShadow = true;
+
+    // scene.add(sphere);
+    //sphere.position.y = sphere.geometry.parameters.radius;
+    //sphere.position.set(0,phere.geometry.parameters.radius,0);
 
     var geometry = new THREE.TorusKnotGeometry(1, 0.3);
     var torus = new THREE.Mesh(geometry, bumpMaterial);
@@ -183,8 +206,16 @@ let app = {
     torus.position.set(5, sphere.geometry.parameters.radius + 2, 2);
     torus.castShadow = true;
 
+    //Trying to add outline
 
-    // Trying to add outline
+    var outlinematerial1 = new THREE.MeshBasicMaterial({color:0x000000, side: THREE.BackSide});
+    let outlineMesh = new THREE.Mesh(geo, outlinematerial1);
+    //outlineMesh.position = sphere.position;
+    outlineMesh.position.set(0,sphere.geometry.parameters.radius * scalar,0);
+    //outlineMesh.position.set(sphere.position);
+    outlineMesh.scale.multiplyScalar(scalar);
+
+//hades shader
     // var outlinematerial1 = new THREE.MeshBasicMaterial({
     //   color: 0x000000,
     //   side: THREE.BackSide,
@@ -197,30 +228,39 @@ let app = {
     //   0
     // );
     // outlineMesh.scale.multiplyScalar(1.02);
-    // scene.add(outlineMesh);
+
+    scene.add(outlineMesh);
+    //scene.add(new RectAreaLightHelper(outlineMesh));
 
     // GUI controls
     const gui = new dat.GUI();
+    gui
+      .add(params, 'lineWeight', 1, 2, 0.01)
+      .name("Border")
+      .onChange((val) => {
+        let ratio = val / scalar;
 
-    gui.add(params, 'speed', 1, 10, 0.5);
-    // gui
-    //   .add(params, 'lightOneSwitch')
-    //   .name('Red light')
-    //   .onChange((val) => {
-    //     rectLight1.intensity = val ? 5 : 0;
-    //   });
-    // gui
-    //   .add(params, 'lightTwoSwitch')
-    //   .name('Green light')
-    //   .onChange((val) => {
-    //     rectLight2.intensity = val ? 5 : 0;
-    //   });
-    // gui
-    //   .add(params, 'lightThreeSwitch')
-    //   .name('Blue light')
-    //   .onChange((val) => {
-    //     rectLight3.intensity = val ? 5 : 0;
-    //   });
+        sphere.position.set(0,(sphere.geometry.parameters.radius* val),0);
+        outlineMesh.position.set(0,sphere.geometry.parameters.radius * val,0);
+        outlineMesh.scale.multiplyScalar(ratio)
+
+        scalar = val;
+      });
+    gui
+      .add(params,'pGlossy',0,20,1)
+      .name("Glossiness")
+      .onChange((val) => {
+        glossiness = val;
+        material.uniforms.glossiness.value = glossiness;
+      });
+      gui
+      .add(params,'pRimAmount',0.7,1,0.05)
+      .name("rim amount")
+      .onChange((val) => {
+        rimAmount = val;
+        material.uniforms.rimAmount.value = rimAmount;
+      });
+
 
     // Stats - show fps
     this.stats1 = new Stats();
@@ -262,4 +302,6 @@ let app = {
  * ps. if you don't use custom shaders, pass undefined to the 'uniforms'(2nd-last) param
  * ps. if you don't use post-processing, pass undefined to the 'composer'(last) param
  *************************************************/
+
+
 runApp(app, scene, renderer, camera, true, undefined, composer);
