@@ -43,6 +43,7 @@ const params = {
   pGlossy : 5.0,
   pRimAmount : 0.8,
   pRimThresh : 0.5,
+  pColor : new THREE.Color("rgb(100, 149, 237)"),
   // Bokeh pass properties
   focus: 0.0,
   aperture: 0,
@@ -130,6 +131,7 @@ let app = {
     var glossiness = params.pGlossy;
     var rimAmount = params.pRimAmount;
     var rimThresh = params.pRimThresh;
+    var color = params.pColor;
     
     // toon material
     var toonMaterial = new THREE.ShaderMaterial({
@@ -137,7 +139,7 @@ let app = {
       flatShading: true,
       uniforms: {
         ...THREE.UniformsLib.lights,
-        uColor: { value: new THREE.Color('#6495ED') },
+        uColor: { value: color },
         glossiness: {value: glossiness},
         rimAmount: {value: rimAmount},
         rimThresh: {value: rimThresh},
@@ -225,14 +227,22 @@ let app = {
         glossiness = val;
         toonMaterial.uniforms.glossiness.value = glossiness;
       });
-      gui
+    gui
       .add(params,'pRimAmount',0.7,1,0.05)
-      .name("rim amount")
+      .name("Rim Amount")
       .onChange((val) => {
         rimAmount = val;
         toonMaterial.uniforms.rimAmount.value = rimAmount;
+    });
+    gui
+      .addColor(params, 'pColor')
+      .name("Color")
+      .onChange((val) => {
+        color = val;
+        toonMaterial.uniforms.uColor.value.r = val.r / 255;
+        toonMaterial.uniforms.uColor.value.g = val.g / 255;
+        toonMaterial.uniforms.uColor.value.b = val.b / 255;
       });
-
 
     // Stats - show fps
     this.stats1 = new Stats();
