@@ -44,6 +44,7 @@ const params = {
   pRimAmount : 0.8,
   pRimThresh : 0.5,
   pColor : new THREE.Color("rgb(100, 149, 237)"),
+  pDirLightColor : new THREE.Color(0xffffff),
   // Bokeh pass properties
   focus: 0.0,
   aperture: 0,
@@ -102,16 +103,16 @@ let app = {
     RectAreaLightUniformsLib.init();
 
     // Create directional light
-    let dirLight1 = new THREE.DirectionalLight(0xffffff, 0.5);
-    dirLight1.position.set(5, 5, 5);
-    dirLight1.lookAt(0, 5, 0);
+    let dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    dirLight.position.set(5, 5, 5);
+    dirLight.lookAt(0, 5, 0);
 
-    dirLight1.castShadow = true;
-    dirLight1.shadow.mapSize.width = 4096;
-    dirLight1.shadow.mapSize.height = 4096;
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 4096;
+    dirLight.shadow.mapSize.height = 4096;
 
-    scene.add(dirLight1);
-    // scene.add(new DirectionalLightHelper(dirLight1));
+    scene.add(dirLight);
+    // scene.add(new DirectionalLightHelper(dirLight));
 
     // Create the floor
     const geoFloor = new THREE.BoxGeometry(200, 0.1, 200);
@@ -233,15 +234,23 @@ let app = {
       .onChange((val) => {
         rimAmount = val;
         toonMaterial.uniforms.rimAmount.value = rimAmount;
-    });
+      });
     gui
       .addColor(params, 'pColor')
       .name("Color")
       .onChange((val) => {
         color = val;
-        toonMaterial.uniforms.uColor.value.r = val.r / 255;
-        toonMaterial.uniforms.uColor.value.g = val.g / 255;
-        toonMaterial.uniforms.uColor.value.b = val.b / 255;
+        toonMaterial.uniforms.uColor.value.r = color.r / 255;
+        toonMaterial.uniforms.uColor.value.g = color.g / 255;
+        toonMaterial.uniforms.uColor.value.b = color.b / 255;
+      });
+    gui
+      .addColor(params, 'pDirLightColor')
+      .name("Light Color")
+      .onChange((val) => {
+        dirLight.color.r = val.r / 255;
+        dirLight.color.g = val.g / 255;
+        dirLight.color.b = val.b / 255;
       });
 
     // Stats - show fps
