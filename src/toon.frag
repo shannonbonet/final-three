@@ -11,6 +11,7 @@ uniform float rimThreshold;
 uniform float uAmbient;
 uniform float uDiffuse;
 uniform float uSpecular;
+uniform int uBanding;
 
 
 varying vec3 vNormal;
@@ -37,7 +38,8 @@ void main() {
   // no additional banding
   // directionalLight = directionalLights[0].color * lightIntensity;
 
-  // with banding 
+  if (uBanding == 4) {
+    // with banding, 4 bands 
   if (NdotL < 0.40) {
     directionalLight = directionalLights[0].color * lightIntensity * 0.1;
   } else if (abs(NdotL) < 0.70) {
@@ -47,6 +49,38 @@ void main() {
   } else if (NdotL < 1.0) {
     directionalLight = directionalLights[0].color * lightIntensity;
   }
+
+  } else if (uBanding == 3) {
+        // with banding, 3 bands 
+  if (NdotL < 0.60) {
+    directionalLight = directionalLights[0].color * lightIntensity * 0.2;
+  } else if (abs(NdotL) < 0.90) {
+    directionalLight = directionalLights[0].color * lightIntensity * 0.5;
+  } else if (NdotL < 1.0) {
+    directionalLight = directionalLights[0].color * lightIntensity;
+  }
+
+  } else if (uBanding == 2) {
+        // with banding, 2 bands 
+  if (NdotL < 0.60) {
+    directionalLight = directionalLights[0].color * lightIntensity * 0.6;
+  } else if (NdotL < 1.0) {
+    directionalLight = directionalLights[0].color * lightIntensity;
+  }
+
+  } else {
+
+
+    directionalLight = directionalLights[0].color * lightIntensity;
+
+
+  }
+  
+
+
+
+
+
 
   // with banding alternate
   //   if (NdotL < 0.40) {

@@ -43,6 +43,7 @@ const params = {
   pAmbient: 1.0,
   pDiffuse: 1.0,
   pSpecular: 1.0,
+  pBanding: 1,
   pGlossy: 5.0,
   pRimAmount: 0.8,
   pRimThresh: 0.5,
@@ -119,14 +120,14 @@ let app = {
     // Create the floor
     const geoFloor = new THREE.BoxGeometry(200, 0.1, 200);
     const matStdFloor = new THREE.MeshStandardMaterial({
-      color: 0x808080,
+      color: 0x606060,
       roughness: 0.5,
       metalness: 0,
     });
     const mshStdFloor = new THREE.Mesh(geoFloor, matStdFloor);
     // need await to make sure animation starts only after texture is loaded
     // this works because the animation code is 'then-chained' after initScene(), see core-utils.runApp
-    await this.loadTexture(mshStdFloor);
+    // await this.loadTexture(mshStdFloor);
     scene.add(mshStdFloor);
     scene.add(new THREE.AmbientLight(0x888888));
     mshStdFloor.receiveShadow = true;
@@ -137,6 +138,7 @@ let app = {
     var glossiness = params.pGlossy;
     var rimAmount = params.pRimAmount;
     var rimThresh = params.pRimThresh;
+    var bandingNum = params.pBanding;
     var color = params.pColor;
 
     // toon material
@@ -152,6 +154,7 @@ let app = {
         uSpecular: { value: specular },
         uDiffuse: { value: diffuse },
         uAmbient: { value: ambient },
+        uBanding: { value: bandingNum },
 
         //hades shader
         //uColor: { value: new THREE.Color('#d14c2a') },
@@ -268,6 +271,13 @@ let app = {
         toonMaterial.uniforms.rimAmount.value = rimAmount;
       });
     gui
+      .add(params, 'pBanding', 1, 4, 1)
+      .name('Banding')
+      .onChange((val) => {
+        bandingNum = val;
+        toonMaterial.uniforms.uBanding.value = bandingNum;
+      });
+    gui
       .addColor(params, 'pColor')
       .name('Color')
       .onChange((val) => {
@@ -284,14 +294,6 @@ let app = {
         dirLight.color.g = val.g / 255;
         dirLight.color.b = val.b / 255;
       });
-
-    // // Stats - show fps
-    // this.stats1 = new Stats();
-    // this.stats1.showPanel(0); // Panel 0 = fps
-    // this.stats1.domElement.style.cssText =
-    //   'position:absolute;top:0px;left:0px;';
-    // // this.container is the parent DOM element of the threejs canvas element
-    // this.container.appendChild(this.stats1.domElement);
   },
   // load a texture for the floor
   // returns a promise so the caller can await on this function
