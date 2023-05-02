@@ -8,6 +8,9 @@ uniform vec3 uColor;
 uniform float glossiness;
 uniform float rimAmount;
 uniform float rimThreshold;
+uniform float uAmbient;
+uniform float uDiffuse;
+uniform float uSpecular;
 
 
 varying vec3 vNormal;
@@ -69,7 +72,7 @@ void main() {
   rimIntensity = smoothstep(rimAmount - 0.01, rimAmount + 0.01, rimIntensity);
   vec3 rim = rimIntensity * directionalLights[0].color;
 
-  gl_FragColor = vec4(uColor  * (ambientLightColor + directionalLight + specular + rim), 1.0);
+  gl_FragColor = vec4(uColor  * (ambientLightColor * uAmbient + directionalLight * uDiffuse + specular * uSpecular + rim), 1.0);
 
 
 }

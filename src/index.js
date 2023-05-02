@@ -39,12 +39,15 @@ const params = {
   lightTwoSwitch: true,
   lightThreeSwitch: true,
 
-  lineWeight : 1.02,
-  pGlossy : 5.0,
-  pRimAmount : 0.8,
-  pRimThresh : 0.5,
-  pColor : new THREE.Color("rgb(100, 149, 237)"),
-  pDirLightColor : new THREE.Color(0xffffff),
+  lineWeight: 1.02,
+  pAmbient: 1.0,
+  pDiffuse: 1.0,
+  pSpecular: 1.0,
+  pGlossy: 5.0,
+  pRimAmount: 0.8,
+  pRimThresh: 0.5,
+  pColor: new THREE.Color('rgb(100, 149, 237)'),
+  pDirLightColor: new THREE.Color(0xffffff),
   // Bokeh pass properties
   focus: 0.0,
   aperture: 0,
@@ -71,7 +74,6 @@ let renderer = createRenderer({ antialias: true }, (_renderer) => {
   // gui.add(params, 'lineWeight',0,2).name('Line Weight').onChange(() => {
   //  _renderer.lineWeight = params.lineWeight;
   // });
-
 });
 
 renderer.shadowMap.enabled = true;
@@ -128,12 +130,15 @@ let app = {
     scene.add(mshStdFloor);
     scene.add(new THREE.AmbientLight(0x888888));
     mshStdFloor.receiveShadow = true;
-    
+
+    var ambient = params.pAmbient;
+    var diffuse = params.pDiffuse;
+    var specular = params.pSpecular;
     var glossiness = params.pGlossy;
     var rimAmount = params.pRimAmount;
     var rimThresh = params.pRimThresh;
     var color = params.pColor;
-    
+
     // toon material
     var toonMaterial = new THREE.ShaderMaterial({
       lights: true,
@@ -141,10 +146,13 @@ let app = {
       uniforms: {
         ...THREE.UniformsLib.lights,
         uColor: { value: color },
-        glossiness: {value: glossiness},
-        rimAmount: {value: rimAmount},
-        rimThresh: {value: rimThresh},
-        
+        glossiness: { value: glossiness },
+        rimAmount: { value: rimAmount },
+        rimThresh: { value: rimThresh },
+        uSpecular: { value: specular },
+        uDiffuse: { value: diffuse },
+        uAmbient: { value: ambient },
+
         //hades shader
         //uColor: { value: new THREE.Color('#d14c2a') },
       },
@@ -152,25 +160,25 @@ let app = {
       vertexShader: toonVertexShader,
       fragmentShader: toonFragmentShader,
     });
-    
+
     // cheater way of bump mapping, can use Three's toon, phong, or lambert shader (toon looks the worst...)
-    var bumpMaterial = new THREE.MeshPhongMaterial({color: '#d14c2a'})
-    var texture = new THREE.TextureLoader().load(Cracked)
+    var bumpMaterial = new THREE.MeshToonMaterial({ color: '#d14c2a' });
+    var texture = new THREE.TextureLoader().load(Cracked);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set( 2, 2 ); // denser pattern
+    texture.repeat.set(2, 2); // denser pattern
 
-    bumpMaterial.bumpMap = texture
-    bumpMaterial.bumpScale = 0.05 // higher values = more textured lines. lower values = cartoonish/smoother effect
+    bumpMaterial.bumpMap = texture;
+    bumpMaterial.bumpScale = 0.05; // higher values = more textured lines. lower values = cartoonish/smoother effect
 
     //let outlineWeight = params.lineWeight;
     let scalar = params.lineWeight;
-    
+
     // sphere object
     var sphereGeo = new THREE.SphereGeometry(2, 24, 24);
     var sphere = new THREE.Mesh(sphereGeo, toonMaterial);
     //var sphere = new THREE.Mesh(sphereGeo, THREE.MeshBasicMaterial({color:0xffffff}));
-    sphere.position.set(0,(sphere.geometry.parameters.radius* scalar ),0);
+    sphere.position.set(0, sphere.geometry.parameters.radius * scalar, 0);
     //sphere.position.y.set(sphere.geometry.parameters.radius *outlineWeight);
     scene.add(sphere);
     sphere.castShadow = true;
@@ -185,14 +193,17 @@ let app = {
     torus.receiveShadow = true;
 
     // outline
-    var outlineMaterial = new THREE.MeshBasicMaterial({color:0x000000, side: THREE.BackSide});
+    var outlineMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      side: THREE.BackSide,
+    });
     let outlineMesh = new THREE.Mesh(sphereGeo, outlineMaterial);
     //outlineMesh.position = sphere.position;
-    outlineMesh.position.set(0,sphere.geometry.parameters.radius * scalar,0);
+    outlineMesh.position.set(0, sphere.geometry.parameters.radius * scalar, 0);
     //outlineMesh.position.set(sphere.position);
     outlineMesh.scale.multiplyScalar(scalar);
     scene.add(outlineMesh);
-    
+
     //hades shader
     // var outlinematerial1 = new THREE.MeshBasicMaterial({
     //   color: 0x000000,
@@ -210,34 +221,55 @@ let app = {
     // GUI controls
     const gui = new dat.GUI();
     gui
-      .add(params, 'lineWeight', 1, 2, 0.01)
-      .name("Border")
+      .add(params, 'pAmbient', 0, 2, 0.05)
+      .name('Ambient')
+      .onChange((val) => {
+        ambient = val;
+        toonMaterial.uniforms.uAmbient.value = ambient;
+      });
+    gui
+      .add(params, 'pDiffuse', 0, 2, 0.05)
+      .name('Diffuse')
+      .onChange((val) => {
+        diffuse = val;
+        toonMaterial.uniforms.uDiffuse.value = diffuse;
+      });
+    gui
+      .add(params, 'pSpecular', 0, 2, 0.05)
+      .name('Specular')
+      .onChange((val) => {
+        specular = val;
+        toonMaterial.uniforms.uSpecular.value = specular;
+      });
+    gui
+      .add(params, 'lineWeight', 1, 1.1, 0.01)
+      .name('Border')
       .onChange((val) => {
         let ratio = val / scalar;
 
-        sphere.position.set(0,(sphere.geometry.parameters.radius* val),0);
-        outlineMesh.position.set(0,sphere.geometry.parameters.radius * val,0);
-        outlineMesh.scale.multiplyScalar(ratio)
+        sphere.position.set(0, sphere.geometry.parameters.radius * val, 0);
+        outlineMesh.position.set(0, sphere.geometry.parameters.radius * val, 0);
+        outlineMesh.scale.multiplyScalar(ratio);
 
         scalar = val;
       });
     gui
-      .add(params,'pGlossy',0,20,1)
-      .name("Glossiness")
+      .add(params, 'pGlossy', 0, 20, 1)
+      .name('Glossiness')
       .onChange((val) => {
         glossiness = val;
         toonMaterial.uniforms.glossiness.value = glossiness;
       });
     gui
-      .add(params,'pRimAmount',0.7,1,0.05)
-      .name("Rim Amount")
+      .add(params, 'pRimAmount', 0.7, 1, 0.05)
+      .name('Rim Amount')
       .onChange((val) => {
         rimAmount = val;
         toonMaterial.uniforms.rimAmount.value = rimAmount;
       });
     gui
       .addColor(params, 'pColor')
-      .name("Color")
+      .name('Color')
       .onChange((val) => {
         color = val;
         toonMaterial.uniforms.uColor.value.r = color.r / 255;
@@ -246,20 +278,20 @@ let app = {
       });
     gui
       .addColor(params, 'pDirLightColor')
-      .name("Light Color")
+      .name('Light Color')
       .onChange((val) => {
         dirLight.color.r = val.r / 255;
         dirLight.color.g = val.g / 255;
         dirLight.color.b = val.b / 255;
       });
 
-    // Stats - show fps
-    this.stats1 = new Stats();
-    this.stats1.showPanel(0); // Panel 0 = fps
-    this.stats1.domElement.style.cssText =
-      'position:absolute;top:0px;left:0px;';
-    // this.container is the parent DOM element of the threejs canvas element
-    this.container.appendChild(this.stats1.domElement);
+    // // Stats - show fps
+    // this.stats1 = new Stats();
+    // this.stats1.showPanel(0); // Panel 0 = fps
+    // this.stats1.domElement.style.cssText =
+    //   'position:absolute;top:0px;left:0px;';
+    // // this.container is the parent DOM element of the threejs canvas element
+    // this.container.appendChild(this.stats1.domElement);
   },
   // load a texture for the floor
   // returns a promise so the caller can await on this function
@@ -293,6 +325,5 @@ let app = {
  * ps. if you don't use custom shaders, pass undefined to the 'uniforms'(2nd-last) param
  * ps. if you don't use post-processing, pass undefined to the 'composer'(last) param
  *************************************************/
-
 
 runApp(app, scene, renderer, camera, true, undefined, composer);
