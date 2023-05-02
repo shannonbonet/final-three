@@ -47,7 +47,7 @@ const params = {
   pGlossy: 5.0,
   pRimAmount: 0.8,
   pRimThresh: 0.5,
-  pColor: new THREE.Color('rgb(100, 149, 237)'),
+  pColor: new THREE.Color('rgb(129, 133, 193)'),
   pDirLightColor: new THREE.Color(0xffffff),
   // Bokeh pass properties
   focus: 0.0,
@@ -107,16 +107,26 @@ let app = {
 
     // Create directional light
     let dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    dirLight.position.set(5, 5, 5);
+    dirLight.position.set(5, 20, 10);
     dirLight.lookAt(0, 5, 0);
 
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 4096;
     dirLight.shadow.mapSize.height = 4096;
 
+    dirLight.shadow.camera = new THREE.OrthographicCamera(
+      -10,
+      10,
+      10,
+      -10,
+      0.1,
+      100
+    );
+
     scene.add(dirLight);
     // scene.add(new DirectionalLightHelper(dirLight));
 
+    scene.add(new THREE.CameraHelper(dirLight.shadow.camera));
     // Create the floor
     const geoFloor = new THREE.BoxGeometry(200, 0.1, 200);
     const matStdFloor = new THREE.MeshStandardMaterial({
@@ -176,6 +186,45 @@ let app = {
 
     //let outlineWeight = params.lineWeight;
     let scalar = params.lineWeight;
+
+    // more objects! ----------------------------------------
+
+    //
+
+    cone = new THREE.Mesh(new THREE.ConeGeometry(2.5, 5, 32), toonMaterial);
+    cone.position.set(-5, 2.5, -5);
+    scene.add(cone);
+    cone.castShadow = true;
+    cone.receiveShadow = true;
+
+    ring = new THREE.Mesh(
+      new THREE.TorusGeometry(1.5, 0.5, 16, 50),
+      toonMaterial
+    );
+    ring.position.set(2, 4, 4);
+    scene.add(ring);
+    ring.castShadow = true;
+    ring.receiveShadow = true;
+
+    capsule = new THREE.Mesh(
+      new THREE.CapsuleGeometry(1, 2, 4, 8),
+      toonMaterial
+    );
+    capsule.position.set(3, 5, -4);
+    scene.add(capsule);
+    capsule.castShadow = true;
+    capsule.receiveShadow = true;
+
+    //
+
+    var cyl = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.5, 1.5, 5, 32),
+      toonMaterial
+    );
+    cyl.position.set(10, 2.5, 3);
+    scene.add(cyl);
+    cyl.castShadow = true;
+    cyl.receiveShadow = true;
 
     // sphere object
     var sphereGeo = new THREE.SphereGeometry(2, 24, 24);
