@@ -25,18 +25,6 @@ void main() {
   float NdotL = dot(vNormal, directionalLights[0].direction);
   float lightIntensity = smoothstep(0.0, 0.01, NdotL);
   vec3 directionalLight;
-
-  // if (NdotL < 0.40) {
-  //   directionalLight = directionalLights[0].color * lightIntensity * 0.1;
-  // } else if (abs(NdotL) < 0.70) {
-  //   directionalLight = directionalLights[0].color * lightIntensity * 0.3;
-  // } else if (abs(NdotL) < 0.90) {
-  //   directionalLight = directionalLights[0].color * lightIntensity * 0.6;
-  // } else if (NdotL < 1.0) {
-  //   directionalLight = directionalLights[0].color * lightIntensity;
-  // }
-
-  //
   
   if (abs(NdotL) > 0.6) {
     if (NdotL > 0.64) {
@@ -49,8 +37,6 @@ void main() {
     directionalLight = (directionalLights[0].color + vec3(0.0, 0.0, -0.0)) * lightIntensity * 0.5;
   }
 
-
-
   // specular reflection
   vec3 halfVector = normalize(directionalLights[0].direction + vViewDir);
   float NdotH = dot(vNormal, halfVector);
@@ -62,8 +48,6 @@ void main() {
   float specularIntensitySmooth = smoothstep(0.05, 0.1, specularIntensity);
 
   vec3 specular = specularIntensitySmooth * (directionalLights[0].color) * 2.0;
-
-
 
   // // rim lighting but it seems like a cheese way to do it, can prob improve
   float rimDot = 1.0 - dot(vViewDir, vNormal);

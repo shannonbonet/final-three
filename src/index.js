@@ -49,6 +49,7 @@ const params = {
   pRimThresh: 0.5,
   pColor: new THREE.Color('rgb(129, 133, 193)'),
   pDirLightColor: new THREE.Color(0xffffff),
+  pHades: false,
   // Bokeh pass properties
   focus: 0.0,
   aperture: 0,
@@ -150,6 +151,7 @@ let app = {
     var rimThresh = params.pRimThresh;
     var bandingNum = params.pBanding;
     var color = params.pColor;
+    var hadesShaderOn = params.pHades;
 
     // toon material
     var toonMaterial = new THREE.ShaderMaterial({
@@ -165,6 +167,7 @@ let app = {
         uDiffuse: { value: diffuse },
         uAmbient: { value: ambient },
         uBanding: { value: bandingNum },
+        hadesOn: { value: hadesShaderOn },
 
         //hades shader
         //uColor: { value: new THREE.Color('#d14c2a') },
@@ -191,7 +194,10 @@ let app = {
 
     //
 
-    cone = new THREE.Mesh(new THREE.ConeGeometry(2.5, 5, 32), toonMaterial);
+    cone = new THREE.Mesh(
+      new THREE.ConeGeometry(2.5, 5, 32),
+      hadesShaderOn ? hadesMaterial : toonMaterial
+    );
     cone.position.set(-5, 2.5, -5);
     scene.add(cone);
     cone.castShadow = true;
@@ -342,6 +348,13 @@ let app = {
         dirLight.color.r = val.r / 255;
         dirLight.color.g = val.g / 255;
         dirLight.color.b = val.b / 255;
+      });
+    gui
+      .add(params, 'pHades')
+      .name('Hades Shader')
+      .onChange((val) => {
+        hadesShaderOn = val;
+        toonMaterial.uniforms.hadesOn.value = val;
       });
   },
   // load a texture for the floor
