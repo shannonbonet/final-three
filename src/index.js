@@ -22,6 +22,7 @@ import {
 import Tile from './assets/checker_tile.png';
 import Okami from './assets/okami_icewater.png';
 import Cracked from './assets/cracked.png';
+import Water from './assets/water.png';
 import { DirectionalLightHelper } from 'three';
 
 global.THREE = THREE;
@@ -47,7 +48,7 @@ const params = {
   pGlossy: 5.0,
   pRimAmount: 0.8,
   pRimThresh: 0.5,
-  pColor: new THREE.Color('rgb(129, 133, 193)'),
+  pColor: new THREE.Color(0x8185c1),
   pDirLightColor: new THREE.Color(0xffffff),
   pHades: false,
   // Bokeh pass properties
@@ -178,14 +179,36 @@ let app = {
     });
 
     // cheater way of bump mapping, can use Three's toon, phong, or lambert shader (toon looks the worst...)
-    var bumpMaterial = new THREE.MeshToonMaterial({ color: '#d14c2a' });
-    var texture = new THREE.TextureLoader().load(Cracked);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(2, 2); // denser pattern
 
-    bumpMaterial.bumpMap = texture;
-    bumpMaterial.bumpScale = 0.05; // higher values = more textured lines. lower values = cartoonish/smoother effect
+    var crack = new THREE.TextureLoader().load(Cracked);
+    var okami = new THREE.TextureLoader().load(Okami);
+    var water = new THREE.TextureLoader().load(Water);
+
+    crack.wrapS = THREE.RepeatWrapping;
+    crack.wrapT = THREE.RepeatWrapping;
+    crack.repeat.set(2, 2); // denser pattern
+    okami.wrapS = THREE.RepeatWrapping;
+    okami.wrapT = THREE.RepeatWrapping;
+    okami.repeat.set(1, 2); 
+
+    const bumpMaps = ( function () {
+      return {
+        okami: okami, 
+        water: water,
+        crack: crack
+      };
+
+    } )();
+
+    const diffuseMapKeys = Object.keys( bumpMaps );
+
+    var bumpMaterial = new THREE.MeshToonMaterial({ 
+      color: color,
+      opacity: 1,
+      visible: false,
+      bumpMap: bumpMaps[diffuseMapKeys[0]],
+      bumpScale: 0.05 // higher values = more textured lines. lower values = cartoonish/smoother effect
+    });
 
     //let outlineWeight = params.lineWeight;
     let scalar = params.lineWeight;
@@ -221,7 +244,6 @@ let app = {
     capsule.castShadow = true;
     capsule.receiveShadow = true;
 
-    //
 
     var cyl = new THREE.Mesh(
       new THREE.CylinderGeometry(1.5, 1.5, 5, 32),
@@ -242,9 +264,16 @@ let app = {
     sphere.castShadow = true;
     sphere.receiveShadow = true;
 
+    var sphereBump = new THREE.SphereGeometry(2, 24, 24);
+    var sphere = new THREE.Mesh(sphereBump, bumpMaterial);
+    sphere.position.set(0, sphere.geometry.parameters.radius * scalar, 0);
+    scene.add(sphere);
+    sphere.castShadow = true;
+    sphere.receiveShadow = true;
+
     // torus knot object
     var torusKnotGeo = new THREE.TorusKnotGeometry(1, 0.3);
-    var torus = new THREE.Mesh(torusKnotGeo, bumpMaterial);
+    var torus = new THREE.Mesh(torusKnotGeo, toonMaterial);
     scene.add(torus);
     torus.position.set(5, sphere.geometry.parameters.radius + 2, 2);
     torus.castShadow = true;
@@ -333,6 +362,17 @@ let app = {
         toonMaterial.uniforms.uBanding.value = bandingNum;
       });
     gui
+      .addColor(params, 'pDirLightColor')
+      .name('Light Color')
+      .onChange((val) => {
+        dirLight.color.r = val.r / 255;
+        dirLight.color.g = val.g / 255;
+        dirLight.color.b = val.b / 255;
+      });
+
+    const customShader = gui.addFolder('Custom Toon')
+    customShader.add( toonMaterial, 'visible' );
+    customShader
       .addColor(params, 'pColor')
       .name('Color')
       .onChange((val) => {
@@ -341,21 +381,45 @@ let app = {
         toonMaterial.uniforms.uColor.value.g = color.g / 255;
         toonMaterial.uniforms.uColor.value.b = color.b / 255;
       });
-    gui
-      .addColor(params, 'pDirLightColor')
-      .name('Light Color')
-      .onChange((val) => {
-        dirLight.color.r = val.r / 255;
-        dirLight.color.g = val.g / 255;
-        dirLight.color.b = val.b / 255;
-      });
-    gui
+    customShader
       .add(params, 'pHades')
       .name('Hades Shader')
       .onChange((val) => {
         hadesShaderOn = val;
         toonMaterial.uniforms.hadesOn.value = val;
       });
+
+    // CUSTOM SHADER CONTROLS 
+    const threeShader = gui.addFolder('THREE Toon (Bump Mapping)')
+
+    const data = {
+      color: bumpMaterial.color.getHex(),
+      map: diffuseMapKeys[0],
+      scale: bumpMaterial.bumpScale
+    };
+
+    function handleColorChange( color ) {
+      return function ( value ) {
+        if ( typeof value === 'string') {
+          value = value.replace('#', '0');
+        }
+        color.setHex( value );
+      };
+    }
+    threeShader.add( bumpMaterial, 'visible' );
+
+    threeShader
+      .addColor(data, 'color')
+      .onChange(handleColorChange(bumpMaterial.color))
+
+    threeShader
+      .add(data, 'map', diffuseMapKeys )
+      .onChange((textureString) => bumpMaterial.bumpMap = bumpMaps[textureString]);
+
+    threeShader
+      .add(data, 'scale', [1, 0.5, 0.05, 0.005])
+      .onChange((val) => bumpMaterial.bumpScale = val);
+    
   },
   // load a texture for the floor
   // returns a promise so the caller can await on this function
