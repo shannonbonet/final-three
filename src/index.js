@@ -126,9 +126,7 @@ let app = {
     );
 
     scene.add(dirLight);
-    // scene.add(new DirectionalLightHelper(dirLight));
 
-    scene.add(new THREE.CameraHelper(dirLight.shadow.camera));
     // Create the floor
     const geoFloor = new THREE.BoxGeometry(200, 0.1, 200);
     const matStdFloor = new THREE.MeshStandardMaterial({
@@ -189,25 +187,24 @@ let app = {
     crack.repeat.set(2, 2); // denser pattern
     okami.wrapS = THREE.RepeatWrapping;
     okami.wrapT = THREE.RepeatWrapping;
-    okami.repeat.set(1, 2); 
+    okami.repeat.set(1, 2);
 
-    const bumpMaps = ( function () {
+    const bumpMaps = (function () {
       return {
-        okami: okami, 
+        okami: okami,
         water: water,
-        crack: crack
+        crack: crack,
       };
+    })();
 
-    } )();
+    const diffuseMapKeys = Object.keys(bumpMaps);
 
-    const diffuseMapKeys = Object.keys( bumpMaps );
-
-    var bumpMaterial = new THREE.MeshToonMaterial({ 
+    var bumpMaterial = new THREE.MeshToonMaterial({
       color: color,
       opacity: 1,
       visible: false,
       bumpMap: bumpMaps[diffuseMapKeys[0]],
-      bumpScale: 0.05 // higher values = more textured lines. lower values = cartoonish/smoother effect
+      bumpScale: 0.05, // higher values = more textured lines. lower values = cartoonish/smoother effect
     });
 
     //let outlineWeight = params.lineWeight;
@@ -244,7 +241,6 @@ let app = {
     capsule.castShadow = true;
     capsule.receiveShadow = true;
 
-
     var cyl = new THREE.Mesh(
       new THREE.CylinderGeometry(1.5, 1.5, 5, 32),
       toonMaterial
@@ -265,11 +261,11 @@ let app = {
     sphere.receiveShadow = true;
 
     var sphereBump = new THREE.SphereGeometry(2, 24, 24);
-    var sphere = new THREE.Mesh(sphereBump, bumpMaterial);
-    sphere.position.set(0, sphere.geometry.parameters.radius * scalar, 0);
-    scene.add(sphere);
-    sphere.castShadow = true;
-    sphere.receiveShadow = true;
+    var sphere2 = new THREE.Mesh(sphereBump, bumpMaterial);
+    sphere2.position.set(0, sphere.geometry.parameters.radius * scalar, 0);
+    scene.add(sphere2);
+    sphere2.castShadow = true;
+    sphere2.receiveShadow = true;
 
     // torus knot object
     var torusKnotGeo = new THREE.TorusKnotGeometry(1, 0.3);
@@ -370,8 +366,8 @@ let app = {
         dirLight.color.b = val.b / 255;
       });
 
-    const customShader = gui.addFolder('Custom Toon')
-    customShader.add( toonMaterial, 'visible' );
+    const customShader = gui.addFolder('Custom Toon');
+    customShader.add(toonMaterial, 'visible');
     customShader
       .addColor(params, 'pColor')
       .name('Color')
@@ -389,37 +385,38 @@ let app = {
         toonMaterial.uniforms.hadesOn.value = val;
       });
 
-    // CUSTOM SHADER CONTROLS 
-    const threeShader = gui.addFolder('THREE Toon (Bump Mapping)')
+    // CUSTOM SHADER CONTROLS
+    const threeShader = gui.addFolder('THREE Toon (Bump Mapping)');
 
     const data = {
       color: bumpMaterial.color.getHex(),
       map: diffuseMapKeys[0],
-      scale: bumpMaterial.bumpScale
+      scale: bumpMaterial.bumpScale,
     };
 
-    function handleColorChange( color ) {
-      return function ( value ) {
-        if ( typeof value === 'string') {
+    function handleColorChange(color) {
+      return function (value) {
+        if (typeof value === 'string') {
           value = value.replace('#', '0');
         }
-        color.setHex( value );
+        color.setHex(value);
       };
     }
-    threeShader.add( bumpMaterial, 'visible' );
+    threeShader.add(bumpMaterial, 'visible');
 
     threeShader
       .addColor(data, 'color')
-      .onChange(handleColorChange(bumpMaterial.color))
+      .onChange(handleColorChange(bumpMaterial.color));
 
     threeShader
-      .add(data, 'map', diffuseMapKeys )
-      .onChange((textureString) => bumpMaterial.bumpMap = bumpMaps[textureString]);
+      .add(data, 'map', diffuseMapKeys)
+      .onChange(
+        (textureString) => (bumpMaterial.bumpMap = bumpMaps[textureString])
+      );
 
     threeShader
       .add(data, 'scale', [1, 0.5, 0.05, 0.005])
-      .onChange((val) => bumpMaterial.bumpScale = val);
-    
+      .onChange((val) => (bumpMaterial.bumpScale = val));
   },
   // load a texture for the floor
   // returns a promise so the caller can await on this function
