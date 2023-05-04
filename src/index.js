@@ -176,6 +176,13 @@ let app = {
       fragmentShader: toonFragmentShader,
     });
 
+    //material for sahding
+    var outlineMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      side: THREE.BackSide,
+    });
+
+
     // cheater way of bump mapping, can use Three's toon, phong, or lambert shader (toon looks the worst...)
 
     var crack = new THREE.TextureLoader().load(Cracked);
@@ -223,6 +230,12 @@ let app = {
     cone.castShadow = true;
     cone.receiveShadow = true;
 
+    // outline
+    let outlineMeshCone = new THREE.Mesh(new THREE.ConeGeometry(2.5, 5, 32), outlineMaterial);
+    outlineMeshCone.position.set(-5, 2.5, -5);
+    outlineMeshCone.scale.multiplyScalar(scalar);
+    scene.add(outlineMeshCone);
+
     ring = new THREE.Mesh(
       new THREE.TorusGeometry(1.5, 0.5, 16, 50),
       toonMaterial
@@ -231,6 +244,12 @@ let app = {
     scene.add(ring);
     ring.castShadow = true;
     ring.receiveShadow = true;
+
+    // outline
+    let outlineMeshring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.5, 16, 50), outlineMaterial);
+    outlineMeshring.position.set(2, 4, 4);
+    outlineMeshring.scale.multiplyScalar(scalar);
+    scene.add(outlineMeshring);
 
     capsule = new THREE.Mesh(
       new THREE.CapsuleGeometry(1, 2, 4, 8),
@@ -241,14 +260,28 @@ let app = {
     capsule.castShadow = true;
     capsule.receiveShadow = true;
 
+    // outline
+    let outlineMeshCapsule = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2, 4, 8), outlineMaterial);
+    outlineMeshCapsule.position.set(3, 5, -4);
+    outlineMeshCapsule.scale.multiplyScalar(scalar);
+    scene.add(outlineMeshCapsule);
+
     var cyl = new THREE.Mesh(
       new THREE.CylinderGeometry(1.5, 1.5, 5, 32),
       toonMaterial
     );
-    cyl.position.set(10, 2.5, 3);
-    scene.add(cyl);
-    cyl.castShadow = true;
-    cyl.receiveShadow = true;
+    // cyl.position.set(10, 2.5, 3);
+    // scene.add(cyl);
+    // cyl.castShadow = true;
+    // cyl.receiveShadow = true;
+
+    // // outline
+    // let outlineMeshCyl = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 5, 32), outlineMaterial);
+    // outlineMeshCyl.position.set(10, 2.5, 3);
+    // outlineMeshCyl.scale.multiplyScalar(scalar);
+    // scene.add(outlineMeshCyl);
+
+    
 
     // sphere object
     var sphereGeo = new THREE.SphereGeometry(2, 24, 24);
@@ -259,6 +292,12 @@ let app = {
     scene.add(sphere);
     sphere.castShadow = true;
     sphere.receiveShadow = true;
+
+    // outline
+    let outlineMesh = new THREE.Mesh(sphereGeo, outlineMaterial);
+    outlineMesh.position.set(0, sphere.geometry.parameters.radius * scalar, 0);
+    outlineMesh.scale.multiplyScalar(scalar);
+    scene.add(outlineMesh);
 
     var sphereBump = new THREE.SphereGeometry(2, 24, 24);
     var sphere2 = new THREE.Mesh(sphereBump, bumpMaterial);
@@ -276,16 +315,10 @@ let app = {
     torus.receiveShadow = true;
 
     // outline
-    var outlineMaterial = new THREE.MeshBasicMaterial({
-      color: 0x000000,
-      side: THREE.BackSide,
-    });
-    let outlineMesh = new THREE.Mesh(sphereGeo, outlineMaterial);
-    //outlineMesh.position = sphere.position;
-    outlineMesh.position.set(0, sphere.geometry.parameters.radius * scalar, 0);
-    //outlineMesh.position.set(sphere.position);
-    outlineMesh.scale.multiplyScalar(scalar);
-    scene.add(outlineMesh);
+    let outlineMeshtorus = new THREE.Mesh(torusKnotGeo, outlineMaterial);
+    outlineMeshtorus.position.set(5, sphere.geometry.parameters.radius +2, 2);
+    outlineMeshtorus.scale.multiplyScalar(scalar);
+    scene.add(outlineMeshtorus);
 
     //hades shader
     // var outlinematerial1 = new THREE.MeshBasicMaterial({
@@ -333,6 +366,36 @@ let app = {
         sphere.position.set(0, sphere.geometry.parameters.radius * val, 0);
         outlineMesh.position.set(0, sphere.geometry.parameters.radius * val, 0);
         outlineMesh.scale.multiplyScalar(ratio);
+
+        cone.position.set(-5, 2.5 * val, -5);
+        outlineMeshCone.position.set(-5, 2.5 * val, -5);
+        outlineMeshCone.scale.multiplyScalar(ratio);
+
+        ring.position.set(2, 4 * val, 4);
+        outlineMeshring.position.set(2, 4 * val, 4);
+        outlineMeshring.scale.multiplyScalar(ratio);
+
+        capsule.position.set(3, 5 * val, -4);   
+        outlineMeshCapsule.position.set(3, 5 * val, -4);
+        outlineMeshCapsule.scale.multiplyScalar(ratio);
+        
+
+        
+        // cyl.position.set(10, 2.5 * val, 3);
+        // outlineMeshCyl.position.set(10, 2.5 * val, 3);
+
+
+        // outlineMeshCyl.geometry.dispose();
+        // outlineMeshCyl.geometry = new THREE.CylinderGeometry(1.5 * ratio * (2.0/3.0), 1.5 * ratio * (2.0/3.0) , 5 * ratio * (1.0/3.0), 32);
+        // scene.add(outlineMeshCyl);
+        // soutlineMeshCyl.scale.multiplyScalar(ratio);
+        // outlineMeshCyl.scale.multiplyVectors(ratio);
+
+        torus.position.set(5, (sphere.geometry.parameters.radius +2) * val, 2);
+        outlineMeshtorus.position.set(5, (sphere.geometry.parameters.radius +2)* val, 2);
+        outlineMeshtorus.scale.multiplyScalar(ratio);
+
+
 
         scalar = val;
       });
